@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { requireAuth } from "./auth";
 import { 
   insertUserSchema, insertAssessmentSchema, insertResumeSchema,
   insertInterviewSchema, insertCareerPathSchema, insertSkillSchema,
@@ -9,9 +10,22 @@ import {
 import { analyzeCareerFit, analyzeResume, generateInterviewQuestions, generateCareerRecommendations } from "./gemini";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // User routes
-  app.get("/api/users/:id", async (req, res) => {
+  // Health check endpoint for Render
+  app.get("/health", (req, res) => {
+    res.status(200).json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  // User routes (protected)
+  app.get("/api/users/:id", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.id !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const user = await storage.getUser(req.params.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -24,23 +38,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const validatedData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByEmail(validatedData.email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User with this email already exists" });
+      // Users can only update their own data
+      if (req.params.id !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
       }
-      const user = await storage.createUser(validatedData);
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid user data" });
-    }
-  });
-
-  app.patch("/api/users/:id", async (req, res) => {
-    try {
+      
       const updates = insertUserSchema.partial().parse(req.body);
       const user = await storage.updateUser(req.params.id, updates);
       const { password, ...userWithoutPassword } = user;
@@ -50,8 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Assessment routes
-  app.post("/api/assessments", async (req, res) => {
+  // Assessment routes (protected)
+  app.post("/api/assessments", requireAuth, async (req, res) => {
     try {
       const validatedData = insertAssessmentSchema.parse(req.body);
       let assessment = await storage.createAssessment(validatedData);
@@ -76,8 +80,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/assessments", async (req, res) => {
+  app.get("/api/users/:userId/assessments", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const assessments = await storage.getUserAssessments(req.params.userId);
       res.json(assessments);
     } catch (error) {
@@ -85,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/assessments/:id", async (req, res) => {
+  app.get("/api/assessments/:id", requireAuth, async (req, res) => {
     try {
       const assessment = await storage.getAssessment(req.params.id);
       if (!assessment) {
@@ -97,8 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Resume routes
-  app.post("/api/resumes", async (req, res) => {
+  // Resume routes (protected)
+  app.post("/api/resumes", requireAuth, async (req, res) => {
     try {
       const validatedData = insertResumeSchema.parse(req.body);
       let resume = await storage.createResume(validatedData);
@@ -121,8 +130,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/resumes", async (req, res) => {
+  app.get("/api/users/:userId/resumes", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const resumes = await storage.getUserResumes(req.params.userId);
       res.json(resumes);
     } catch (error) {
@@ -130,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/resumes/:id", async (req, res) => {
+  app.get("/api/resumes/:id", requireAuth, async (req, res) => {
     try {
       const resume = await storage.getResume(req.params.id);
       if (!resume) {
@@ -142,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/resumes/:id", async (req, res) => {
+  app.patch("/api/resumes/:id", requireAuth, async (req, res) => {
     try {
       const updates = insertResumeSchema.partial().parse(req.body);
       
@@ -165,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/resumes/:id", async (req, res) => {
+  app.delete("/api/resumes/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteResume(req.params.id);
       res.status(204).send();
@@ -174,8 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interview routes
-  app.post("/api/interviews", async (req, res) => {
+  // Interview routes (protected)
+  app.post("/api/interviews", requireAuth, async (req, res) => {
     try {
       const validatedData = insertInterviewSchema.parse(req.body);
       
@@ -196,8 +210,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/interviews", async (req, res) => {
+  app.get("/api/users/:userId/interviews", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const interviews = await storage.getUserInterviews(req.params.userId);
       res.json(interviews);
     } catch (error) {
@@ -205,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/interviews/:id", async (req, res) => {
+  app.get("/api/interviews/:id", requireAuth, async (req, res) => {
     try {
       const interview = await storage.getInterview(req.params.id);
       if (!interview) {
@@ -217,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/interviews/:id", async (req, res) => {
+  app.patch("/api/interviews/:id", requireAuth, async (req, res) => {
     try {
       const updates = insertInterviewSchema.partial().parse(req.body);
       const interview = await storage.updateInterview(req.params.id, updates);
@@ -227,8 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Career path routes
-  app.post("/api/career-paths", async (req, res) => {
+  // Career path routes (protected)
+  app.post("/api/career-paths", requireAuth, async (req, res) => {
     try {
       const validatedData = insertCareerPathSchema.parse(req.body);
       let careerPath = await storage.createCareerPath(validatedData);
@@ -256,8 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/career-paths", async (req, res) => {
+  app.get("/api/users/:userId/career-paths", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const careerPaths = await storage.getUserCareerPaths(req.params.userId);
       res.json(careerPaths);
     } catch (error) {
@@ -265,8 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Skills routes
-  app.post("/api/skills", async (req, res) => {
+  // Skills routes (protected)
+  app.post("/api/skills", requireAuth, async (req, res) => {
     try {
       const validatedData = insertSkillSchema.parse(req.body);
       const skill = await storage.createSkill(validatedData);
@@ -276,8 +300,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/skills", async (req, res) => {
+  app.get("/api/users/:userId/skills", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const skills = await storage.getUserSkills(req.params.userId);
       res.json(skills);
     } catch (error) {
@@ -285,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/skills/:id", async (req, res) => {
+  app.patch("/api/skills/:id", requireAuth, async (req, res) => {
     try {
       const updates = insertSkillSchema.partial().parse(req.body);
       const skill = await storage.updateSkill(req.params.id, updates);
@@ -295,8 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Goals routes
-  app.post("/api/goals", async (req, res) => {
+  // Goals routes (protected)
+  app.post("/api/goals", requireAuth, async (req, res) => {
     try {
       const validatedData = insertGoalSchema.parse(req.body);
       const goal = await storage.createGoal(validatedData);
@@ -306,8 +335,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/goals", async (req, res) => {
+  app.get("/api/users/:userId/goals", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const goals = await storage.getUserGoals(req.params.userId);
       res.json(goals);
     } catch (error) {
@@ -315,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/goals/:id", async (req, res) => {
+  app.patch("/api/goals/:id", requireAuth, async (req, res) => {
     try {
       const updates = insertGoalSchema.partial().parse(req.body);
       const goal = await storage.updateGoal(req.params.id, updates);
@@ -325,9 +359,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Recommendations routes
-  app.get("/api/users/:userId/recommendations", async (req, res) => {
+  // Recommendations routes (protected)
+  app.get("/api/users/:userId/recommendations", requireAuth, async (req, res) => {
     try {
+      // Users can only access their own data
+      if (req.params.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const recommendations = await storage.getUserRecommendations(req.params.userId);
       res.json(recommendations);
     } catch (error) {
