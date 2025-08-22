@@ -1,48 +1,50 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import type { Assessment, Resume, Interview, CareerPath, Skill, Goal } from "@shared/schema";
-
-// Mock user ID for demo - in real app this would come from auth
-const DEMO_USER_ID = "demo-user";
 
 export function useCareerData() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  // Use authenticated user ID or fallback to demo for testing
+  const userId = user?.id || "demo-user";
 
   // Assessments
   const assessments = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "assessments"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "assessments"],
+    enabled: !!userId,
   });
 
   const createAssessment = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/assessments", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "assessments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "assessments"] });
     },
   });
 
   // Resumes
   const resumes = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "resumes"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "resumes"],
+    enabled: !!userId,
   });
 
   const createResume = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/resumes", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "resumes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "resumes"] });
     },
   });
 
@@ -52,64 +54,64 @@ export function useCareerData() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "resumes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "resumes"] });
     },
   });
 
   // Interviews
   const interviews = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "interviews"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "interviews"],
+    enabled: !!userId,
   });
 
   const createInterview = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/interviews", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "interviews"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "interviews"] });
     },
   });
 
   // Career Paths
   const careerPaths = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "career-paths"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "career-paths"],
+    enabled: !!userId,
   });
 
   const createCareerPath = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/career-paths", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "career-paths"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "career-paths"] });
     },
   });
 
   // Skills
   const skills = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "skills"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "skills"],
+    enabled: !!userId,
   });
 
   const createSkill = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/skills", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "skills"] });
     },
   });
 
@@ -119,37 +121,37 @@ export function useCareerData() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "skills"] });
     },
   });
 
   // Goals
   const goals = useQuery({
-    queryKey: ["/api/users", DEMO_USER_ID, "goals"],
-    enabled: !!DEMO_USER_ID,
+    queryKey: ["/api/users", userId, "goals"],
+    enabled: !!userId,
   });
 
   const createGoal = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/goals", {
         ...data,
-        userId: DEMO_USER_ID,
+        userId: userId,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", DEMO_USER_ID, "goals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "goals"] });
     },
   });
 
   return {
     // Data
-    assessments: assessments.data || [],
-    resumes: resumes.data || [],
-    interviews: interviews.data || [],
-    careerPaths: careerPaths.data || [],
-    skills: skills.data || [],
-    goals: goals.data || [],
+    assessments: Array.isArray(assessments.data) ? assessments.data : [],
+    resumes: Array.isArray(resumes.data) ? resumes.data : [],
+    interviews: Array.isArray(interviews.data) ? interviews.data : [],
+    careerPaths: Array.isArray(careerPaths.data) ? careerPaths.data : [],
+    skills: Array.isArray(skills.data) ? skills.data : [],
+    goals: Array.isArray(goals.data) ? goals.data : [],
 
     // Loading states
     isLoadingAssessments: assessments.isLoading,
