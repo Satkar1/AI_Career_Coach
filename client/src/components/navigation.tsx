@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { 
-  Zap, Menu, X, Sun, Moon, Monitor,
+  Zap, Menu, X, Sun, Moon, Monitor, LogOut,
   Home, User, FileText, MessageSquare, 
   TrendingUp, Target, BarChart3 
 } from "lucide-react";
@@ -28,6 +29,7 @@ export function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full z-40 glass" data-testid="main-navigation">
@@ -99,17 +101,39 @@ export function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Desktop CTA Buttons */}
+            {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost" className="text-primary" data-testid="sign-in-button">
-                Sign In
-              </Button>
-              <Button 
-                className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-300"
-                data-testid="get-started-button"
-              >
-                Get Started
-              </Button>
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-primary" data-testid="user-menu">
+                      Welcome, {user?.firstName || user?.username}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="glass">
+                    <DropdownMenuItem onClick={logout} data-testid="logout-button">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" className="text-primary" data-testid="sign-in-button">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button 
+                      className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-300"
+                      data-testid="get-started-button"
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -156,15 +180,33 @@ export function Navigation() {
                 );
               })}
               <div className="pt-4 pb-2 space-y-2">
-                <Button variant="ghost" className="w-full justify-start" data-testid="mobile-sign-in">
-                  Sign In
-                </Button>
-                <Button 
-                  className="w-full justify-start bg-gradient-to-r from-primary-500 to-secondary-500 text-white"
-                  data-testid="mobile-get-started"
-                >
-                  Get Started
-                </Button>
+                {isAuthenticated ? (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
+                    onClick={logout}
+                    data-testid="mobile-logout"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <>
+                    <Link href="/login">
+                      <Button variant="ghost" className="w-full justify-start" data-testid="mobile-sign-in">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/signup">
+                      <Button 
+                        className="w-full justify-start bg-gradient-to-r from-primary-500 to-secondary-500 text-white"
+                        data-testid="mobile-get-started"
+                      >
+                        Get Started
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
